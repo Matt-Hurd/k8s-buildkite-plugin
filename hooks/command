@@ -1,10 +1,10 @@
 #!/bin/bash
 
-set -euo pipefail
+set -euxo pipefail
 
 basedir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
 
-job_name="${BUILDKITE_PIPELINE_SLUG}-${BUILDKITE_BUILD_NUMBER}-$(cat /dev/urandom | tr -dc 'A-Z2-7' | fold -w 8 | head -n 1)"
+job_name="${BUILDKITE_PIPELINE_SLUG}-${BUILDKITE_BUILD_NUMBER}-$(cat /dev/urandom | LC_CTYPE=C tr -dc 'A-Z2-7' | fold -w 8 | head -n 1)"
 echo "${job_name}" > /tmp/job_name
 
 if [[ ${BUILDKITE_TIMEOUT:-"false"} == "false" ]]; then
