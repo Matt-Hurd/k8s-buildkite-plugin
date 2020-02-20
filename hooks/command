@@ -4,7 +4,7 @@ set -euo pipefail
 
 basedir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
 
-job_name="${BUILDKITE_PIPELINE_SLUG}-${BUILDKITE_BUILD_NUMBER}-$(head -c 5 /dev/urandom | base32 | tr '[:upper:]' '[:lower:]')"
+job_name="${BUILDKITE_PIPELINE_SLUG}-${BUILDKITE_BUILD_NUMBER}-$(cat /dev/urandom | tr -dc 'A-Z2-7' | fold -w 8 | head -n 1)"
 echo "${job_name}" > /tmp/job_name
 
 if [[ ${BUILDKITE_TIMEOUT:-"false"} == "false" ]]; then
