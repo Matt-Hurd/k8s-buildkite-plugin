@@ -24,6 +24,9 @@ local allowedEnvs = std.set(
     'BUILDKITE_REBUILT_FROM_BUILD_NUMBER',
     'BUILDKITE_REPO',
     'BUILDKITE_SOURCE',
+    'BUILDKITE_GIT_CLEAN_FLAGS',
+    'BUILDKITE_AGENT_DEBUG',
+    'BUILDKITE_GIT_CLEAN_FLAGS',
   ]
 );
 
@@ -67,6 +70,8 @@ function(jobName, agentEnv={}, stepEnvFile='', patchFunc=identity) patchFunc({
     BUILDKITE_PLUGIN_K8S_RESOURCES_LIMIT_CPU: '',
     BUILDKITE_PLUGIN_K8S_RESOURCES_REQUEST_MEMORY: '',
     BUILDKITE_PLUGIN_K8S_RESOURCES_LIMIT_MEMORY: '',
+    BUILDKITE_AGENT_DEBUG: 'true',
+    BUILDKITE_GIT_CLEAN_FLAGS: '-fdqx',
     BUILDKITE_PLUGIN_K8S_WORKDIR: std.join('/', [env.BUILDKITE_BUILD_PATH, buildSubPath]),
   } + agentEnv,
 
@@ -267,20 +272,8 @@ function(jobName, agentEnv={}, stepEnvFile='', patchFunc=identity) patchFunc({
       },
       spec: {
         activeDeadlineSeconds: deadline,
-        restartPolicy: 'Never',
-        initContainers: [
-          {
-            name: 'bootstrap',
-            image: env.BUILDKITE_PLUGIN_K8S_INIT_IMAGE,
-            args: ['bootstrap', '--experiment=git-mirrors', '--git-mirrors-path=/git-mirrors', '--ssh-keyscan', '--command', 'true'],
-            env: podEnv,
-            volumeMounts: [
-              { mountPath: env.BUILDKITE_BUILD_PATH, name: 'build' },
-              { mountPath: '/git-mirrors', name: 'git-mirrors' },
-              { mountPath: '/local', name: 'buildkite-agent' },
-            ] + gitCredentials.mount + gitSSH.mount,
-          },
-        ],
+        restartPolicy: 'OnFailure',
+        terminationGracePeriodSeconds: 1800,
         containers: [
           {
             name: 'step',
@@ -321,6 +314,13 @@ function(jobName, agentEnv={}, stepEnvFile='', patchFunc=identity) patchFunc({
           { name: 'build' } + buildVolume,
           { name: 'git-mirrors' } + gitMirrorsVolume,
           { name: 'buildkite-agent', emptyDir: {} },
+          { name: 'ssh-keys', mountPath: '/root/.ssh/id_rsa', subPath: 'id_rsa'},
+          { name: 'ssh-keys', mountPath: '/root/.ssh/id_rsa.pub', subPath: 'id_rsa.pub'},
+          { name: 'browserstack-tests-ssh-keys', mountPath: '/root/.ssh/browserstack-tests-deploy-key', subPath: 'browserstack-tests-deploy-key'},
+          { name: 'browserstack-tests-ssh-keys', mountPath: '/root/.ssh/browserstack-tests-deploy-key.pub', subPath: 'browserstack-tests-deploy-key.pub'},
+          { name: 'docker-binary', mountPath: '/usr/bin/docker' },
+          { name: 'docker-socket', mountPath: '/var/run/docker.sock' },
+          { name: 'yarn-cache', mountPath: '/tmp/yarn-cache' },
         ] + gitCredentials.volume + gitSSH.volume + secretMount.volume + hostPathMount.volume,
       },
     },
