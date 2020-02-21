@@ -12,4 +12,6 @@ if [[ -d /local ]]; then
   cp /usr/local/bin/buildkite-agent /local/
 fi
 
+gcloud container clusters get-credentials buildkite-agents --zone us-central1-b --project sigma-1330
+
 exec /usr/local/bin/buildkite-agent "$@"
